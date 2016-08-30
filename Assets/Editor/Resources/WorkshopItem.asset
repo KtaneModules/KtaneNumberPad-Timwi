@@ -13,8 +13,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   WorkshopPublishedFileID: 754939777
   Title: Number Pad
-  Description: This is a placeholder description. It will be filled with information
-    in a little bit.
+  Description: "[b][i]Try putting in 0000. No? Try 0001. Still not working? We might
+    be here for a while...[/i][/b]\r\n[h1]Number Pad[/h1]\r\nIt's just a number pad,
+    how hard could it be? Pretty hard, actually. The process of cracking the code
+    behind this seemingly harmless module is sure to be a difficult task!\r\n\r\n[h1]Manual[/h1]\r\nThe
+    PDF is included, but you can also view it [url=https://mitterdoo.github.io/ktanemod-numberpad/Manual/NumberPad.html]here[/url]
+    (HTML) and [url=https://mitterdoo.github.io/ktanemod-numberpad/Manual/pdfs/Modules/NumberPad.pdf]here[/url]
+    (PDF).\r\n\r\n[u]Module name (for missions):[/u] [b][i]NumberPad[/i][/b]\r\n\r\nThis
+    is my first module, so if the module errors (it will solve itself if it does),
+    please create a discussion and post your output_log.txt found in [i]Keep Talking
+    and Nobody Explodes/ktane_Data[/i]. ."
   PreviewImage: {fileID: 2800000, guid: 8d2a4d4220aa6aa4cb72eca794c731c5, type: 3}
   Tags:
   - Regular Module
