@@ -39,16 +39,39 @@ public static class StringExtension
 
 public class NumberPadModule : MonoBehaviour
 {
-	static string Wheel = "12305717506313801516106482983387430675373640290503098763385425943657584758364894743619461342450049788237734806272714"; // trust me this works
+	static string Wheel = "22468313395143690979890789940526034176635285026086097984297491480871855832860082003490389675061692920733696061238335"; // trust me this works
 	public KMSelectable[] buttons;
 	public TextMesh Display;
-
+	public Texture Texture;
+	public Shader Shader;
 
 	string WorkingCode; // when the code starts being calculated, this will be the cumulative code to be referenced in other places
 	float LastStrike = 0;
 
 	bool isActivated = false;
 	KMBombInfo Info;
+
+	int[,] ButtonColors = new int[,] {
+		{0,0,0},
+		{0,0,0},
+		{0,0,0},
+		  {0}
+	};
+	static float LowColor = 0.3f;
+
+	static int COLOR_WHITE = 0;
+	static int COLOR_GREEN = 1;
+	static int COLOR_YELLOW =2;
+	static int COLOR_BLUE =  3;
+	static int COLOR_RED =   4;
+
+	Color[] Colors = {
+		new Color (1, 1, 1),				// white
+		new Color (LowColor, 1, LowColor),	// green
+		new Color (1, 1, LowColor ),		// yellow
+		new Color (LowColor, LowColor, 1 ),	// blue
+		new Color (1, LowColor, LowColor )	// red
+	};
 
 
 	void Start()
@@ -61,51 +84,97 @@ public class NumberPadModule : MonoBehaviour
 
 	void Init()
 	{
-
 		for(int i = 0; i < buttons.Length; i++)
 		{
 			Animator anim = buttons [i].GetComponentInChildren<Animator> ();
 			string Name = buttons [i].name;
+
+
 			buttons[i].OnInteract += delegate () {
 				anim.SetTrigger( "PushTrigger" );
 				OnPress(Name.Substring ( 6 ) ); // button names all start with "Button", the rest is which one they are
 				
 				return false;
 			};
+
+
+			MeshRenderer renderer = buttons [i].GetComponentInChildren<MeshRenderer> ();
+
+			if (Name.Length == 7) {
+				int Number = int.Parse (Name.Substring (6));
+				int[] idx = GetButtonIndices (Number);
+
+				ButtonColors [idx[0], idx[1]] = Random.Range (0, 5);
+
+				Color col = Colors [ButtonColors[idx[0], idx[1]] ];
+
+				Material mat = new Material (Shader);
+				mat.SetTexture ("_MainTex", this.Texture);
+				mat.color = col;
+				renderer.material = mat;
+			}
 		}
 	}
 
+	int[] GetButtonIndices( int Number )
+	{
+		if( Number == 0 )
+			return new int[]{3,0};
+		int y = 2 - Mathf.FloorToInt ((float)(Number - 1) / 3);
+		int x = (Number - 1) % 3;
+		return new int[]{ x, y };
+	}
+	int GetButtonColor( int Number )
+	{
+		int[] i = GetButtonIndices (Number);
+		return ButtonColors [i [0], i [1]];
+	}
+
+	int GetColorCount( int Color )
+	{
+		int count = 0;
+		for( int i = 0; i < 10; i++ )
+		{
+			if (GetButtonColor (i) == Color)
+				count++;
+		}
+		return count;
+	}
 
 	int GetPathForLevel( int level )
 	{
-		//Debug.Log ("getting path for level " + level);
+		//print ("getting path for level " + level);
 		switch( level )
 		{
 		case 0:
-			if (SerialLastDigit () % 2 == 0 && BatteryCount () % 2 == 0)
+			if (GetColorCount( COLOR_YELLOW ) >= 3 )
 				return 0;
-			else if (SerialLastDigit () % 2 == 1 && StrikeCount () > 0)
+			else if (
+				ArrayContains<int>( new int[]{ COLOR_WHITE, COLOR_BLUE, COLOR_RED }, GetButtonColor( 4 ) ) && 
+				ArrayContains<int>( new int[]{ COLOR_WHITE, COLOR_BLUE, COLOR_RED }, GetButtonColor( 5 ) ) && 
+				ArrayContains<int>( new int[]{ COLOR_WHITE, COLOR_BLUE, COLOR_RED }, GetButtonColor( 6 ) ) )
 				return 1;
 			else if (ContainsVowel())
 				return 2;
 			else
 				return 3;
 		case 1:
-			if (Indicators (new string[]{ "FRQ" }, true))
+			if ( GetColorCount( COLOR_BLUE ) >= 2 && GetColorCount( COLOR_GREEN ) >= 3 )
 				return 0;
-			else if (Ports (new string[]{ "DVI", "PS2", "Serial" }))
+			else if ( GetButtonColor( 5 ) != COLOR_BLUE && GetButtonColor(5) != COLOR_WHITE )
 				return 1;
 			else if (PortCount () < 2)
 				return 2;
 			else
 			{
-				SubtractDigit (0);
+				if( GetButtonColor( 7 ) == COLOR_GREEN || GetButtonColor (8) == COLOR_GREEN || GetButtonColor( 9 ) == COLOR_GREEN )
+					SubtractDigit (0);
 				return 3;
 			}
 
 		case 2:
 
-			if (SolvedModuleCount () % 2 == 1)
+			if ( GetColorCount( COLOR_WHITE ) > 2 && GetColorCount( COLOR_YELLOW ) > 2 )
 				return 0;
 			else
 			{
@@ -114,7 +183,7 @@ public class NumberPadModule : MonoBehaviour
 
 		case 3:
 
-			if (StrikeCount () % 2 == 0) {
+			if (GetColorCount( COLOR_YELLOW ) <= 2 ) {
 				return 0; // remember to add 1 to each digit
 			} else
 				return 1;
@@ -133,12 +202,12 @@ public class NumberPadModule : MonoBehaviour
 		int Path = GetPathForLevel (0);
 		string[] Status = PickFrom (Cur, Path, 4);
 		WorkingCode = Status [0];
-		//Debug.Log ("workingcode is " + WorkingCode);
+		//print ("workingcode is " + WorkingCode);
 
 		Path = GetPathForLevel (1);
 		Status = PickFrom (Status [1], Path, 4);
 		WorkingCode += Status [0];
-		//Debug.Log ("workingcode is " + WorkingCode);
+		//print ("workingcode is " + WorkingCode);
 
 		Path = GetPathForLevel (2);
 		Status = PickFrom (Status [1], Path, 2);
@@ -147,7 +216,7 @@ public class NumberPadModule : MonoBehaviour
 			//print ("took second path, reversing code");
 			WorkingCode = WorkingCode.Reverse ();
 		}
-		//Debug.Log ("workingcode is " + WorkingCode);
+		//print ("workingcode is " + WorkingCode);
 
 		Path = GetPathForLevel (3);
 		Status = PickFrom (Status [1], Path, 2);
@@ -160,20 +229,20 @@ public class NumberPadModule : MonoBehaviour
 				AddDigit (i);
 			}
 		}
-		//Debug.Log ("workingcode is " + WorkingCode);
+		//print ("workingcode is " + WorkingCode);
 
 		bool NotMet = true;
-		if( !ContainsVowel () )
+		if( SerialLastDigit() % 2 == 0 )
 		{
-			//print ("no vowels, swapping 1 and 3");
+			//print ("serial even, swapping 1 and 3");
 			string old = WorkingCode.Substring (2, 1);
 			WorkingCode = WorkingCode.ReplaceAt (2, WorkingCode.Substring (0, 1));
 			WorkingCode = WorkingCode.ReplaceAt (0, old);
 			NotMet = false;
 		}
-		if( BatteryCount () < 3 )
+		if( BatteryCount () % 2 == 1 )
 		{
-			//print ("battery count < 3, swapping 2 and 3");
+			//print ("battery count odd, swapping 2 and 3");
 			string old = WorkingCode.Substring (2, 1);
 			WorkingCode = WorkingCode.ReplaceAt (2, WorkingCode.Substring (1, 1));
 			WorkingCode = WorkingCode.ReplaceAt (1, old);
@@ -186,19 +255,19 @@ public class NumberPadModule : MonoBehaviour
 			WorkingCode = WorkingCode.ReplaceAt (3 ,WorkingCode.Substring (0, 1));
 			WorkingCode = WorkingCode.ReplaceAt (0, old);
 		}
-		//Debug.Log ("workingcode is " + WorkingCode);
+		//print ("workingcode is " + WorkingCode);
 
 		int Sum = 0;
 		for( int i = 0; i < 4; i++ )
 		{
 			Sum += int.Parse( WorkingCode.Substring (i, 1) );
 		}
-		if( Sum % 2 == 1 )
+		if( Sum % 2 == 0 )
 		{
-			//Debug.Log ("sum is odd, reversing");
+			//print ("sum is even reversing");
 			WorkingCode = WorkingCode.Reverse ();
 		}
-		//Debug.Log ("workingcode is FINALLY " + WorkingCode);
+		//print ("workingcode is FINALLY " + WorkingCode);
 
 		return WorkingCode;
 	}
@@ -262,7 +331,7 @@ public class NumberPadModule : MonoBehaviour
 			else if( Name == "Clear" )
 			{
 				Display.text = "";
-				//Debug.Log ("the hatch code is " + GetCorrectCode ());
+				//print ("the hatch code is " + GetCorrectCode ());
 
 			}
 			else if( Display.text.Length > 0 )
@@ -426,7 +495,7 @@ public class NumberPadModule : MonoBehaviour
 		int idx = Input.Length / Choices * Choice;
 		ret [0] = Input.Substring (idx, 1);
 		ret [1] = Input.Substring (idx + 1, Input.Length / Choices - 1);
-		//Debug.Log ("the chosen path is " + Choice + " with " + Choices + " choices, the input is \"" + Input + "\", the number is " + ret [0] + ", and the rest is \"" + ret [1] + "\"");
+		//print ("the chosen path is " + Choice + " with " + Choices + " choices, the input is \"" + Input + "\", the number is " + ret [0] + ", and the rest is \"" + ret [1] + "\"");
 		return ret;
 
 	}

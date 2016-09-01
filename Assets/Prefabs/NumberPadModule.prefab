@@ -3412,6 +3412,8 @@ MonoBehaviour:
   - {fileID: 11484658}
   - {fileID: 11433872}
   Display: {fileID: 10297346}
+  Texture: {fileID: 2800000, guid: aa79756699c140043bee912f52bb3075, type: 3}
+  Shader: {fileID: 4800000, guid: d7145e9c887dcbc468e6d64a938cdd62, type: 3}
 --- !u!114 &11456250
 MonoBehaviour:
   m_ObjectHideFlags: 1
