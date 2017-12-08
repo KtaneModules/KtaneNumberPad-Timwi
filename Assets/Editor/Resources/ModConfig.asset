@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615501dbe4f3fe94fbf4b564abb10237, type: 3}
+  m_Name: ModConfig
+  m_EditorClassIdentifier:
+  id: NumberPad
+  title: Number Pad
+  description: "[b][i]Try putting in 0000. No? Try 0001. Still not working? We might be here for a while...[/i][/b]
+
+
+    Number Pad
+
+
+    It’s just a number pad, how hard could it be? Pretty hard, actually. The process of cracking the code behind this seemingly harmless module is sure to be a difficult task!
+
+
+    [url=http://ktane.timwi.de/PDF/Number%20Pad.pdf]Manual PDF[/url]
+
+    [url=http://ktane.timwi.de/HTML/Number%20Pad.html]Manual HTML[/url]
+
+
+    If you're having a hard time understanding how the path method works, refer to the image of the wheel chart above the description. The red numbers represent the path number for the level they're on.
+
+
+    Module name (for missions): NumberPad"
+  version: 1.0
+  outputFolder: build
+  previewImage: {fileID: 2800000, guid: bd5c1f4881f57d54481b44e4c8a7779a, type: 3}
