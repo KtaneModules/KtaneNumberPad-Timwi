@@ -3634,6 +3634,7 @@ MonoBehaviour:
   Display: {fileID: 10297346}
   Texture: {fileID: 2800000, guid: 49652d1c45b3e3b4cb1c8628985e44fa, type: 3}
   Shader: {fileID: 4800000, guid: f7b6c6b3c2955ed4ba448a40435c3b9f, type: 3}
+  Info: {fileID: 11480210}
 --- !u!114 &11456250
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4016,7 +4017,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/Diffuse
+  - KT/Mobile/DiffuseTint
 --- !u!114 &114286214676691456
 MonoBehaviour:
   m_ObjectHideFlags: 1

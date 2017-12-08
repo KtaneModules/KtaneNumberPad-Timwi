@@ -12,12 +12,12 @@ public class NumberPadModule : MonoBehaviour
     public TextMesh Display;
     public Texture Texture;
     public Shader Shader;
+    public KMBombInfo Info;
 
-    string _workingCode; // when the code starts being calculated, this will be the cumulative code to be referenced in other places
-    float LastStrike = 0;
+    string _solution; // when the code starts being calculated, this will be the cumulative code to be referenced in other places
+    float _lastStrike = 0;
 
     bool isActivated = false;
-    KMBombInfo Info;
 
     int[,] ButtonColors = new int[,] {
         {0,0,0},
@@ -45,9 +45,7 @@ public class NumberPadModule : MonoBehaviour
     void Start()
     {
         Init();
-
         GetComponent<KMBombModule>().OnActivate += ActivateModule;
-        Info = GetComponent<KMBombInfo>();
     }
 
     void Init()
@@ -165,102 +163,14 @@ public class NumberPadModule : MonoBehaviour
 
     }
 
-    string GetCorrectCode()
-    {
-        int Path = GetPathForLevel(0);
-        string[] Status = PickFrom(_wheel, Path, 4);
-        _workingCode = Status[0];
-
-        Path = GetPathForLevel(1);
-        Status = PickFrom(Status[1], Path, 4);
-        _workingCode += Status[0];
-
-        Path = GetPathForLevel(2);
-        Status = PickFrom(Status[1], Path, 2);
-        _workingCode += Status[0];
-        if (Path == 1)
-        {
-            //print ("took second path, reversing code");
-            _workingCode = _workingCode.Reverse();
-        }
-
-        Path = GetPathForLevel(3);
-        Status = PickFrom(Status[1], Path, 2);
-        _workingCode += Status[0];
-        if (Path == 0)
-        {
-            //print ("took first path, adding 1 to all digits");
-            for (int i = 0; i < 4; i++)
-            {
-                AddDigit(i);
-            }
-        }
-
-        bool NotMet = true;
-        if (SerialLastDigit() % 2 == 0)
-        {
-            //print ("serial even, swapping 1 and 3");
-            var old = _workingCode[2];
-            _workingCode = _workingCode.ReplaceAt(2, _workingCode[0]);
-            _workingCode = _workingCode.ReplaceAt(0, old);
-            NotMet = false;
-        }
-        if (BatteryCount() % 2 == 1)
-        {
-            //print ("battery count odd, swapping 2 and 3");
-            var old = _workingCode[2];
-            _workingCode = _workingCode.ReplaceAt(2, _workingCode[1]);
-            _workingCode = _workingCode.ReplaceAt(1, old);
-            NotMet = false;
-        }
-        if (NotMet)
-        {
-            //print ("neither conditions met, swapping 1 and 4");
-            var old = _workingCode[3];
-            _workingCode = _workingCode.ReplaceAt(3, _workingCode[0]);
-            _workingCode = _workingCode.ReplaceAt(0, old);
-        }
-        //print ("workingcode is " + WorkingCode);
-
-        int Sum = 0;
-        for (int i = 0; i < 4; i++)
-        {
-            Sum += int.Parse(_workingCode.Substring(i, 1));
-        }
-        if (Sum % 2 == 0)
-        {
-            //print ("sum is even reversing");
-            _workingCode = _workingCode.Reverse();
-        }
-        //print ("workingcode is FINALLY " + WorkingCode);
-
-        return _workingCode;
-    }
-
     void Submit()
     {
-        if (Time.time - LastStrike < 1) // don't let the nervous fucker click the button twice
+        if (Time.time - _lastStrike < 1) // don't let the nervous fucker click the button twice
             return;
-        string Correct = "";
-        try
-        {
-            Correct = GetCorrectCode();
-        }
-        catch (System.Exception e) // something might still fuck up soooo
-        {
-
-            GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.NeedyActivated, transform);
-            Display.text = "ERROR";
-            Debug.LogError("NUMBER PAD: hey something happened here it is:\n " + e.Message);
-
-            GetComponent<KMBombModule>().HandlePass(); // they basically can't get out of this one so let them go
-            isActivated = false;
-            throw e;
-        }
 
         //Debug.LogError("correct code: " + Correct);
 
-        if (Correct == Display.text)
+        if (_solution == Display.text)
         {
             GetComponent<KMBombModule>().HandlePass();
             isActivated = false;
@@ -268,17 +178,17 @@ public class NumberPadModule : MonoBehaviour
         else
         {
             GetComponent<KMBombModule>().HandleStrike();
-            LastStrike = Time.time;
+            _lastStrike = Time.time;
         }
 
     }
 
     void Update()
     {
-        if (Time.time - LastStrike >= 1 && LastStrike != 0.0f)
+        if (Time.time - _lastStrike >= 1 && _lastStrike != 0.0f)
         {
             Display.text = "";
-            LastStrike = 0;
+            _lastStrike = 0;
         }
     }
 
@@ -310,21 +220,82 @@ public class NumberPadModule : MonoBehaviour
         }
     }
 
-
-
     void ActivateModule()
     {
         isActivated = true;
+        int path = GetPathForLevel(0);
+        string[] status = PickFrom(_wheel, path, 4);
+        _solution = status[0];
+
+        path = GetPathForLevel(1);
+        status = PickFrom(status[1], path, 4);
+        _solution += status[0];
+
+        path = GetPathForLevel(2);
+        status = PickFrom(status[1], path, 2);
+        _solution += status[0];
+
+        if (path == 1)
+        {
+            //print ("took second path, reversing code");
+            _solution = _solution.Reverse();
+        }
+
+        path = GetPathForLevel(3);
+        status = PickFrom(status[1], path, 2);
+        _solution += status[0];
+        if (path == 0)
+        {
+            //print ("took first path, adding 1 to all digits");
+            for (int i = 0; i < 4; i++)
+            {
+                AddDigit(i);
+            }
+        }
+
+        bool notMet = true;
+        if (SerialLastDigit() % 2 == 0)
+        {
+            //print ("serial even, swapping 1 and 3");
+            var old = _solution[2];
+            _solution = _solution.ReplaceAt(2, _solution[0]);
+            _solution = _solution.ReplaceAt(0, old);
+            notMet = false;
+        }
+        if (BatteryCount() % 2 == 1)
+        {
+            //print ("battery count odd, swapping 2 and 3");
+            var old = _solution[2];
+            _solution = _solution.ReplaceAt(2, _solution[1]);
+            _solution = _solution.ReplaceAt(1, old);
+            notMet = false;
+        }
+        if (notMet)
+        {
+            //print ("neither conditions met, swapping 1 and 4");
+            var old = _solution[3];
+            _solution = _solution.ReplaceAt(3, _solution[0]);
+            _solution = _solution.ReplaceAt(0, old);
+        }
+        //print ("workingcode is " + WorkingCode);
+
+        int sum = 0;
+        for (int i = 0; i < 4; i++)
+            sum += int.Parse(_solution.Substring(i, 1));
+
+        if (sum % 2 == 0)
+        {
+            //print ("sum is even reversing");
+            _solution = _solution.Reverse();
+        }
+        //print ("workingcode is FINALLY " + WorkingCode);
     }
 
-
-    bool ArrayContains<T>(T[] Array, T Query)
+    bool ArrayContains<T>(T[] array, T query)
     {
-        foreach (T value in Array)
-        {
-            if (EqualityComparer<T>.Default.Equals(value, Query))
+        foreach (T value in array)
+            if (Equals(value, query))
                 return true;
-        }
         return false;
     }
 
@@ -418,11 +389,11 @@ public class NumberPadModule : MonoBehaviour
     }
     void SubtractDigit(int Digit)
     {
-        _workingCode = _workingCode.ReplaceAt(Digit, (char) ('0' + ((_workingCode[Digit] - '0' + 9) % 10)));
+        _solution = _solution.ReplaceAt(Digit, (char) ('0' + ((_solution[Digit] - '0' + 9) % 10)));
     }
     void AddDigit(int Digit)
     {
-        _workingCode = _workingCode.ReplaceAt(Digit, (char) ('0' + ((_workingCode[Digit] - '0' + 1) % 10)));
+        _solution = _solution.ReplaceAt(Digit, (char) ('0' + ((_solution[Digit] - '0' + 1) % 10)));
     }
     int SolvedModuleCount()
     {
