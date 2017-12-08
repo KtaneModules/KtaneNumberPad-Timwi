@@ -17,7 +17,9 @@ public class NumberPadModule : MonoBehaviour
     string _solution; // when the code starts being calculated, this will be the cumulative code to be referenced in other places
     float _lastStrike = 0;
 
-    bool isActivated = false;
+    bool _isActivated = false;
+    int _moduleId = 0;
+    static int _moduleIdCounter = 1;
 
     int[,] ButtonColors = new int[,] {
         {0,0,0},
@@ -44,6 +46,7 @@ public class NumberPadModule : MonoBehaviour
 
     void Start()
     {
+        _moduleId = _moduleIdCounter++;
         Init();
         GetComponent<KMBombModule>().OnActivate += ActivateModule;
     }
@@ -53,23 +56,20 @@ public class NumberPadModule : MonoBehaviour
         for (int i = 0; i < buttons.Length; i++)
         {
             Animator anim = buttons[i].GetComponentInChildren<Animator>();
-            string Name = buttons[i].name;
-
+            string name = buttons[i].name;
 
             buttons[i].OnInteract += delegate ()
             {
                 anim.SetTrigger("PushTrigger");
-                OnPress(Name.Substring(6)); // button names all start with "Button", the rest is which one they are
-
+                OnPress(name.Substring(6)); // button names all start with "Button", the rest is which one they are
                 return false;
             };
 
-
             MeshRenderer renderer = buttons[i].GetComponentInChildren<MeshRenderer>();
 
-            if (Name.Length == 7)
+            if (name.Length == 7)
             {
-                int Number = int.Parse(Name.Substring(6));
+                int Number = int.Parse(name.Substring(6));
                 int[] idx = GetButtonIndices(Number);
 
                 ButtonColors[idx[0], idx[1]] = Random.Range(0, 5);
@@ -77,7 +77,7 @@ public class NumberPadModule : MonoBehaviour
                 Color col = Colors[ButtonColors[idx[0], idx[1]]];
 
                 Material mat = new Material(Shader);
-                mat.SetTexture("_MainTex", this.Texture);
+                mat.SetTexture("_MainTex", Texture);
                 mat.color = col;
                 renderer.material = mat;
             }
@@ -173,7 +173,7 @@ public class NumberPadModule : MonoBehaviour
         if (_solution == Display.text)
         {
             GetComponent<KMBombModule>().HandlePass();
-            isActivated = false;
+            _isActivated = false;
         }
         else
         {
@@ -196,7 +196,7 @@ public class NumberPadModule : MonoBehaviour
     {
         GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 
-        if (isActivated)
+        if (_isActivated)
         {
 
             if (Name.Length == 1) // this is a digit
@@ -222,62 +222,64 @@ public class NumberPadModule : MonoBehaviour
 
     void ActivateModule()
     {
-        isActivated = true;
+        _isActivated = true;
         int path = GetPathForLevel(0);
         string[] status = PickFrom(_wheel, path, 4);
         _solution = status[0];
+        Debug.LogFormat("[Number Pad #{0}] Level 1 path = {1}; code is now: {2}", _moduleId, path + 1, _solution);
 
         path = GetPathForLevel(1);
         status = PickFrom(status[1], path, 4);
         _solution += status[0];
+        Debug.LogFormat("[Number Pad #{0}] Level 2 path = {1}; code is now: {2}", _moduleId, path + 1, _solution);
 
         path = GetPathForLevel(2);
         status = PickFrom(status[1], path, 2);
         _solution += status[0];
+        Debug.LogFormat("[Number Pad #{0}] Level 3 path = {1}; code is now: {2}", _moduleId, path + 1, _solution);
 
         if (path == 1)
         {
-            //print ("took second path, reversing code");
             _solution = _solution.Reverse();
+            Debug.LogFormat("[Number Pad #{0}] Took second path; reversing code: {2}", _moduleId, path + 1, _solution);
         }
 
         path = GetPathForLevel(3);
         status = PickFrom(status[1], path, 2);
         _solution += status[0];
+        Debug.LogFormat("[Number Pad #{0}] Level 4 path = {1}; code is now: {2}", _moduleId, path + 1, _solution);
+
         if (path == 0)
         {
-            //print ("took first path, adding 1 to all digits");
             for (int i = 0; i < 4; i++)
-            {
                 AddDigit(i);
-            }
+            Debug.LogFormat("[Number Pad #{0}] Took first path; adding 1 to each digit: {2}", _moduleId, path + 1, _solution);
         }
 
         bool notMet = true;
         if (SerialLastDigit() % 2 == 0)
         {
-            //print ("serial even, swapping 1 and 3");
             var old = _solution[2];
             _solution = _solution.ReplaceAt(2, _solution[0]);
             _solution = _solution.ReplaceAt(0, old);
             notMet = false;
+            Debug.LogFormat("[Number Pad #{0}] Serial number is even, swapping 1 and 3: {1}", _moduleId, _solution);
         }
         if (BatteryCount() % 2 == 1)
         {
-            //print ("battery count odd, swapping 2 and 3");
             var old = _solution[2];
             _solution = _solution.ReplaceAt(2, _solution[1]);
             _solution = _solution.ReplaceAt(1, old);
             notMet = false;
+            Debug.LogFormat("[Number Pad #{0}] Battery count is odd, swapping 2 and 3: {1}", _moduleId, _solution);
         }
         if (notMet)
         {
-            //print ("neither conditions met, swapping 1 and 4");
             var old = _solution[3];
             _solution = _solution.ReplaceAt(3, _solution[0]);
             _solution = _solution.ReplaceAt(0, old);
+            Debug.LogFormat("[Number Pad #{0}] Neither serial number nor battery condition applies, swapping 1 and 4: {1}", _moduleId, _solution);
         }
-        //print ("workingcode is " + WorkingCode);
 
         int sum = 0;
         for (int i = 0; i < 4; i++)
@@ -285,10 +287,9 @@ public class NumberPadModule : MonoBehaviour
 
         if (sum % 2 == 0)
         {
-            //print ("sum is even reversing");
             _solution = _solution.Reverse();
+            Debug.LogFormat("[Number Pad #{0}] Sum is even, reversing: {1}", _moduleId, _solution);
         }
-        //print ("workingcode is FINALLY " + WorkingCode);
     }
 
     bool ArrayContains<T>(T[] array, T query)
@@ -378,42 +379,40 @@ public class NumberPadModule : MonoBehaviour
     int PortCount()
     {
         int count = 0;
-        List<string> Response = Info.QueryWidgets(KMBombInfo.QUERYKEY_GET_PORTS, null);
-        foreach (string Value in Response)
+        List<string> response = Info.QueryWidgets(KMBombInfo.QUERYKEY_GET_PORTS, null);
+        foreach (string Value in response)
         {
-            Dictionary<string, List<string>> Ind = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(Value);
-
-            count += Ind["presentPorts"].Count;
+            Dictionary<string, List<string>> ind = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(Value);
+            count += ind["presentPorts"].Count;
         }
         return count;
     }
-    void SubtractDigit(int Digit)
+    void SubtractDigit(int digit)
     {
-        _solution = _solution.ReplaceAt(Digit, (char) ('0' + ((_solution[Digit] - '0' + 9) % 10)));
+        _solution = _solution.ReplaceAt(digit, (char) ('0' + ((_solution[digit] - '0' + 9) % 10)));
     }
-    void AddDigit(int Digit)
+    void AddDigit(int digit)
     {
-        _solution = _solution.ReplaceAt(Digit, (char) ('0' + ((_solution[Digit] - '0' + 1) % 10)));
+        _solution = _solution.ReplaceAt(digit, (char) ('0' + ((_solution[digit] - '0' + 1) % 10)));
     }
     int SolvedModuleCount()
     {
         return Info.GetSolvedModuleNames().Count;
     }
-    string[] PickFrom(string Input, int Choice, int Choices)
+    string[] PickFrom(string input, int choice, int choices)
     {
         string[] ret = new string[2];
 
-        if (Choice < 0 || Choice >= Choices)
+        if (choice < 0 || choice >= choices)
             throw new UnityException("NUMBER PAD: Choice out of range!");
 
-        if (Input.Length % Choices != 0)
-            throw new UnityException("NUMBER PAD: While trying to pick a portion of the code wheel, the string's length (" + Input.Length + ") wasn't divisible by the choice count (" + Choices + ")!");
+        if (input.Length % choices != 0)
+            throw new UnityException("NUMBER PAD: While trying to pick a portion of the code wheel, the string's length (" + input.Length + ") wasn't divisible by the choice count (" + choices + ")!");
 
-        int idx = Input.Length / Choices * Choice;
-        ret[0] = Input.Substring(idx, 1);
-        ret[1] = Input.Substring(idx + 1, Input.Length / Choices - 1);
+        int idx = input.Length / choices * choice;
+        ret[0] = input.Substring(idx, 1);
+        ret[1] = input.Substring(idx + 1, input.Length / choices - 1);
         //print ("the chosen path is " + Choice + " with " + Choices + " choices, the input is \"" + Input + "\", the number is " + ret [0] + ", and the rest is \"" + ret [1] + "\"");
         return ret;
-
     }
 }
