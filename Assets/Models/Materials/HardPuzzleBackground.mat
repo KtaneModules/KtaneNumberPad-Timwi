@@ -7,7 +7,7 @@ Material:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: HardPuzzleBackground
-  m_Shader: {fileID: 4800000, guid: 4a9eeac2e27874941bde6a650652d70a, type: 3}
+  m_Shader: {fileID: 4800000, guid: f7b6c6b3c2955ed4ba448a40435c3b9f, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 5
   m_EnableInstancingVariants: 0
