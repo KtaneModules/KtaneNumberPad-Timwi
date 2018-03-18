@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using NumberPad;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class NumberPadModule : MonoBehaviour
 {
@@ -414,5 +417,34 @@ public class NumberPadModule : MonoBehaviour
         ret[1] = input.Substring(idx + 1, input.Length / choices - 1);
         //print ("the chosen path is " + Choice + " with " + Choices + " choices, the input is \"" + Input + "\", the number is " + ret [0] + ", and the rest is \"" + ret [1] + "\"");
         return ret;
+    }
+
+    KMSelectable ButtonToSelectable(string button)
+    {
+        return buttons.FirstOrDefault(x => x.name.Equals(string.Format("button{0}", button),StringComparison.InvariantCultureIgnoreCase));
+    }
+
+#pragma warning disable 414
+    private string TwitchHelpMessage = @"Submit your answer with !{0} submit 4236.";
+#pragma warning restore 414
+
+    private IEnumerator ProcessTwitchCommand(string inputCommand)
+    {
+        var commands = inputCommand.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (commands.Length != 2 || !commands[0].Equals("submit", StringComparison.InvariantCultureIgnoreCase)) yield break;
+
+        List<KMSelectable> buttonList = commands[1].Select(c => ButtonToSelectable(c.ToString())).ToList();
+        buttonList.Insert(0,ButtonToSelectable("clear"));
+        buttonList.Add(ButtonToSelectable("enter"));
+
+        if (buttonList.Count() != 6 || buttonList.Any(num => num == null)) yield break;
+
+        yield return null;
+        foreach (KMSelectable button in buttonList)
+        {
+            button.OnInteract();
+            yield return new WaitForSeconds(0.1f);
+        }
     }
 }
