@@ -45,7 +45,7 @@ public class NumberPadModule : MonoBehaviour
 		new Color (LowColor, LowColor, 1 ),	// blue
 		new Color (1, LowColor, LowColor )	// red
 	};
-
+    string[] ColorNames = { "white", "green", "yellow", "blue", "red" };
 
     void Start()
     {
@@ -85,6 +85,7 @@ public class NumberPadModule : MonoBehaviour
                 renderer.material = mat;
             }
         }
+        Debug.LogFormat("[Number Pad #{0}] Button colors are: {1}", _moduleId, string.Join(", ", Enumerable.Range(0, 3).SelectMany(y => Enumerable.Range(0, 3).Select(x => ColorNames[ButtonColors[x, y]])).Concat(new[] { ColorNames[ButtonColors[3, 0]] }).ToArray()));
     }
 
     int[] GetButtonIndices(int Number)
