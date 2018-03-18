@@ -421,30 +421,32 @@ public class NumberPadModule : MonoBehaviour
 
     KMSelectable ButtonToSelectable(string button)
     {
-        return buttons.FirstOrDefault(x => x.name.Equals(string.Format("button{0}", button),StringComparison.InvariantCultureIgnoreCase));
+        return buttons.FirstOrDefault(x => x.name.Equals(string.Format("button{0}", button), StringComparison.InvariantCultureIgnoreCase));
     }
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = @"Submit your answer with !{0} submit 4236.";
+    private string TwitchHelpMessage = @"Submit your four-digit answer with “!{0} submit 4236”.";
 #pragma warning restore 414
 
     private IEnumerator ProcessTwitchCommand(string inputCommand)
     {
-        var commands = inputCommand.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var commands = inputCommand.ToLowerInvariant().Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
 
-        if (commands.Length != 2 || !commands[0].Equals("submit", StringComparison.InvariantCultureIgnoreCase)) yield break;
+        if (commands.Length != 2 || (commands[0] != "submit" && commands[0] != "press"))
+            yield break;
 
-        List<KMSelectable> buttonList = commands[1].Select(c => ButtonToSelectable(c.ToString())).ToList();
-        buttonList.Insert(0,ButtonToSelectable("clear"));
+        var buttonList = commands[1].Where(c => !char.IsWhiteSpace(c)).Select(c => ButtonToSelectable(c.ToString())).ToList();
+        if (buttonList.Count() != 4 || buttonList.Any(num => num == null))
+            yield break;
+
+        buttonList.Insert(0, ButtonToSelectable("clear"));
         buttonList.Add(ButtonToSelectable("enter"));
 
-        if (buttonList.Count() != 6 || buttonList.Any(num => num == null)) yield break;
-
         yield return null;
-        foreach (KMSelectable button in buttonList)
+        foreach (var button in buttonList)
         {
             button.OnInteract();
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(.1f);
         }
     }
 }
