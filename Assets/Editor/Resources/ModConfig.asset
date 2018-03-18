@@ -14,13 +14,13 @@ MonoBehaviour:
   id: NumberPad
   title: Number Pad
   description: "[b][i]Try putting in 0000. No? Try 0001. Still not working? We might
-    be here for a while...[/i][/b]\n\nNumber Pad\n\nIt\u2019s just a number pad, how
-    hard could it be? Pretty hard, actually. The process of cracking the code behind
-    this seemingly harmless module is sure to be a difficult task!\n\n[url=http://ktane.timwi.de/PDF/Number%20Pad.pdf]Manual
-    PDF[/url]\n[url=http://ktane.timwi.de/HTML/Number%20Pad.html]Manual HTML[/url]\n\nIf
-    you're having a hard time understanding how the path method works, refer to the
-    image of the wheel chart above the description. The red numbers represent the
-    path number for the level they're on.\n\nModule name (for missions): NumberPad"
+    be here for a while...[/i][/b]\n\nNumber Pad module, developed by mitterdoo.\n\nIt\u2019s
+    just a number pad, how hard could it be? Pretty hard, actually. The process of
+    cracking the code behind this seemingly harmless module is sure to be a difficult
+    task!\n\n[url=http://ktane.timwi.de/PDF/Number%20Pad.pdf]Manual PDF[/url]\n[url=http://ktane.timwi.de/HTML/Number%20Pad.html]Manual
+    HTML[/url]\n\nIf you're having a hard time understanding how the path method works,
+    refer to the image of the wheel chart above the description. The red numbers represent
+    the path number for the level they're on.\n\nModule name (for missions): NumberPad"
   version: 1.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 98477e6d71ce7824cbf0e5bfdac8833c, type: 3}
