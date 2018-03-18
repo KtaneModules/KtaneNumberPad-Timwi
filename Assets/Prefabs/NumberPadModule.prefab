@@ -3633,7 +3633,7 @@ MonoBehaviour:
   - {fileID: 11433872}
   Display: {fileID: 10297346}
   Texture: {fileID: 2800000, guid: 49652d1c45b3e3b4cb1c8628985e44fa, type: 3}
-  Shader: {fileID: 4800000, guid: f7b6c6b3c2955ed4ba448a40435c3b9f, type: 3}
+  Shader: {fileID: 4800000, guid: 3f0d4a2e325f9c24f8251b7b8534a096, type: 3}
   Info: {fileID: 11480210}
 --- !u!114 &11456250
 MonoBehaviour:
