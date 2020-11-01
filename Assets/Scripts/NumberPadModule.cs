@@ -11,7 +11,9 @@ public class NumberPadModule : MonoBehaviour
 {
     private static string _wheel = "22468313395143690979890789940526034176635285026086097984297491480871855832860082003490389675061692920733696061238335";
 
-    public KMSelectable[] buttons;
+    public KMSelectable[] DigitButtons;
+    public KMSelectable ClearButton;
+    public KMSelectable SubmitButton;
     public TextMesh Display;
     public Texture Texture;
     public Shader Shader;
@@ -56,35 +58,46 @@ public class NumberPadModule : MonoBehaviour
 
     void Init()
     {
-        for (int i = 0; i < buttons.Length; i++)
+        for (int i = 0; i < DigitButtons.Length; i++)
         {
-            Animator anim = buttons[i].GetComponentInChildren<Animator>();
-            string name = buttons[i].name;
+            Animator anim = DigitButtons[i].GetComponentInChildren<Animator>();
 
-            buttons[i].OnInteract += delegate ()
+            var j = i;
+            DigitButtons[i].OnInteract += delegate ()
             {
+                DigitButtons[j].AddInteractionPunch(.1f);
                 anim.SetTrigger("PushTrigger");
-                OnPress(name.Substring(6)); // button names all start with "Button", the rest is which one they are
+                OnPress(j); // button names all start with "Button", the rest is which one they are
                 return false;
             };
 
-            MeshRenderer renderer = buttons[i].GetComponentInChildren<MeshRenderer>();
+            MeshRenderer renderer = DigitButtons[i].GetComponentInChildren<MeshRenderer>();
 
-            if (name.Length == 7)
-            {
-                int Number = int.Parse(name.Substring(6));
-                int[] idx = GetButtonIndices(Number);
+            int[] idx = GetButtonIndices(i);
 
-                ButtonColors[idx[0], idx[1]] = Random.Range(0, 5);
+            ButtonColors[idx[0], idx[1]] = Random.Range(0, 5);
 
-                Color col = Colors[ButtonColors[idx[0], idx[1]]];
+            Color col = Colors[ButtonColors[idx[0], idx[1]]];
 
-                Material mat = new Material(Shader);
-                mat.SetTexture("_MainTex", Texture);
-                mat.color = col;
-                renderer.material = mat;
-            }
+            Material mat = new Material(Shader);
+            mat.SetTexture("_MainTex", Texture);
+            mat.color = col;
+            renderer.material = mat;
         }
+
+        ClearButton.OnInteract += delegate
+        {
+            ClearButton.AddInteractionPunch();
+            Display.text = "";
+            return false;
+        };
+        SubmitButton.OnInteract += delegate
+        {
+            SubmitButton.AddInteractionPunch();
+            Submit();
+            return false;
+        };
+
         Debug.LogFormat("[Number Pad #{0}] Button colors are: {1}", _moduleId, string.Join(", ", Enumerable.Range(0, 3).SelectMany(y => Enumerable.Range(0, 3).Select(x => ColorNames[ButtonColors[x, y]])).Concat(new[] { ColorNames[ButtonColors[3, 0]] }).ToArray()));
     }
 
@@ -169,10 +182,7 @@ public class NumberPadModule : MonoBehaviour
 
     void Submit()
     {
-        if (Time.time - _lastStrike < 1) // don't let the nervous fucker click the button twice
-            return;
-
-        //Debug.LogError("correct code: " + Correct);
+        Debug.LogFormat("[Number Pad #{0}] You submitted: {1}, which is {2}", _moduleId, Display.text, _solution == Display.text ? "correct — module solved." : "wrong — strike!");
 
         if (_solution == Display.text)
         {
@@ -184,7 +194,6 @@ public class NumberPadModule : MonoBehaviour
             GetComponent<KMBombModule>().HandleStrike();
             _lastStrike = Time.time;
         }
-
     }
 
     void Update()
@@ -196,32 +205,12 @@ public class NumberPadModule : MonoBehaviour
         }
     }
 
-    void OnPress(string Name)
+    void OnPress(int btnIx)
     {
         GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 
-        if (_isActivated)
-        {
-
-            if (Name.Length == 1) // this is a digit
-            {
-                if (Display.text.Length < 4) // don't overflow
-                {
-                    Display.text += Name;
-                }
-            }
-            else if (Name == "Clear")
-            {
-                Display.text = "";
-                //print ("the hatch code is " + GetCorrectCode ());
-
-            }
-            else if (Display.text.Length > 0)
-            {
-                Submit();
-            }
-
-        }
+        if (_isActivated && Display.text.Length < 4)
+            Display.text += btnIx;
     }
 
     void ActivateModule()
@@ -420,11 +409,6 @@ public class NumberPadModule : MonoBehaviour
         return ret;
     }
 
-    KMSelectable ButtonToSelectable(string button)
-    {
-        return buttons.FirstOrDefault(x => x.name.Equals(string.Format("button{0}", button), StringComparison.InvariantCultureIgnoreCase));
-    }
-
 #pragma warning disable 414
     private string TwitchHelpMessage = @"Submit your four-digit answer with “!{0} submit 4236”.";
 #pragma warning restore 414
@@ -436,12 +420,12 @@ public class NumberPadModule : MonoBehaviour
         if (commands.Length != 2 || (commands[0] != "submit" && commands[0] != "press"))
             yield break;
 
-        var buttonList = commands[1].Where(c => !char.IsWhiteSpace(c)).Select(c => ButtonToSelectable(c.ToString())).ToList();
+        var buttonList = commands[1].Where(c => !char.IsWhiteSpace(c)).Select(c => DigitButtons[c - '0']).ToList();
         if (buttonList.Count() != 4 || buttonList.Any(num => num == null))
             yield break;
 
-        buttonList.Insert(0, ButtonToSelectable("clear"));
-        buttonList.Add(ButtonToSelectable("enter"));
+        buttonList.Insert(0, ClearButton);
+        buttonList.Add(SubmitButton);
 
         yield return null;
         foreach (var button in buttonList)
@@ -449,5 +433,25 @@ public class NumberPadModule : MonoBehaviour
             button.OnInteract();
             yield return new WaitForSeconds(.1f);
         }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        if (!_isActivated)
+            yield break;
+
+        if (Display.text.Length > 0)
+        {
+            ClearButton.OnInteract();
+            yield return new WaitForSeconds(.25f);
+        }
+
+        for (var i = 0; i < _solution.Length; i++)
+        {
+            DigitButtons[_solution[i] - '0'].OnInteract();
+            yield return new WaitForSeconds(.1f);
+        }
+
+        SubmitButton.OnInteract();
     }
 }
