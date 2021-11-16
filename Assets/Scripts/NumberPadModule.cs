@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using NumberPad;
 using UnityEngine;
@@ -9,7 +10,11 @@ using Random = UnityEngine.Random;
 
 public class NumberPadModule : MonoBehaviour
 {
-    private static string _wheel = "22468313395143690979890789940526034176635285026086097984297491480871855832860082003490389675061692920733696061238335";
+    private static readonly string _wheel = "22468313395143690979890789940526034176635285026086097984297491480871855832860082003490389675061692920733696061238335";
+
+    public KMBombModule Module;
+    public KMAudio Audio;
+    public KMColorblindMode ColorblindMode;
 
     public KMSelectable[] DigitButtons;
     public KMSelectable ClearButton;
@@ -18,46 +23,38 @@ public class NumberPadModule : MonoBehaviour
     public Texture Texture;
     public Shader Shader;
     public KMBombInfo Info;
+    public TextMesh[] ButtonLabels;
+    public MeshRenderer[] Buttons;
 
-    string _solution; // when the code starts being calculated, this will be the cumulative code to be referenced in other places
-    float _lastStrike = 0;
+    private string _solution; // when the code starts being calculated, this will be the cumulative code to be referenced in other places
+    private float _lastStrike = 0;
 
-    bool _isActivated = false;
-    int _moduleId = 0;
-    static int _moduleIdCounter = 1;
+    private bool _isActivated = false;
+    private int _moduleId = 0;
+    private static int _moduleIdCounter = 1;
+    private bool _colorblind;
 
-    int[,] ButtonColors = new int[,] {
-        {0,0,0},
-        {0,0,0},
-        {0,0,0},
-        {0,0,0}
-    };
-    static float LowColor = 0.3f;
+    private readonly int[] ButtonColors = new int[10];
+    private const float LowColor = 0.3f;
 
-    static int COLOR_WHITE = 0;
-    static int COLOR_GREEN = 1;
-    static int COLOR_YELLOW = 2;
-    static int COLOR_BLUE = 3;
-    static int COLOR_RED = 4;
+    private const int COLOR_WHITE = 0;
+    private const int COLOR_GREEN = 1;
+    private const int COLOR_YELLOW = 2;
+    private const int COLOR_BLUE = 3;
+    private const int COLOR_RED = 4;
 
-    Color[] Colors = {
+    private static readonly Color[] Colors = {
         new Color (1, 1, 1),				// white
 		new Color (LowColor, 1, LowColor),	// green
 		new Color (1, 1, LowColor ),		// yellow
 		new Color (LowColor, LowColor, 1 ),	// blue
 		new Color (1, LowColor, LowColor )	// red
 	};
-    string[] ColorNames = { "white", "green", "yellow", "blue", "red" };
+    private static readonly string[] ColorNames = { "white", "green", "yellow", "blue", "red" };
 
     void Start()
     {
         _moduleId = _moduleIdCounter++;
-        Init();
-        GetComponent<KMBombModule>().OnActivate += ActivateModule;
-    }
-
-    void Init()
-    {
         for (int i = 0; i < DigitButtons.Length; i++)
         {
             Animator anim = DigitButtons[i].GetComponentInChildren<Animator>();
@@ -71,25 +68,27 @@ public class NumberPadModule : MonoBehaviour
                 return false;
             };
 
-            MeshRenderer renderer = DigitButtons[i].GetComponentInChildren<MeshRenderer>();
+            ButtonColors[i] = Random.Range(0, 5);
 
-            int[] idx = GetButtonIndices(i);
-
-            ButtonColors[idx[0], idx[1]] = Random.Range(0, 5);
-
-            Color col = Colors[ButtonColors[idx[0], idx[1]]];
+            Color col = Colors[ButtonColors[i]];
 
             Material mat = new Material(Shader);
             mat.SetTexture("_MainTex", Texture);
             mat.color = col;
-            renderer.material = mat;
+            Buttons[i].material = mat;
         }
 
         ClearButton.OnInteract += delegate
         {
             ClearButton.AddInteractionPunch();
+            Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
             Display.text = "";
+            SetColorblind(true);
             return false;
+        };
+        ClearButton.OnInteractEnded += delegate
+        {
+            SetColorblind(false);
         };
         SubmitButton.OnInteract += delegate
         {
@@ -98,80 +97,57 @@ public class NumberPadModule : MonoBehaviour
             return false;
         };
 
-        Debug.LogFormat("[Number Pad #{0}] Button colors are: {1}", _moduleId, string.Join(", ", Enumerable.Range(0, 3).SelectMany(y => Enumerable.Range(0, 3).Select(x => ColorNames[ButtonColors[x, y]])).Concat(new[] { ColorNames[ButtonColors[3, 0]] }).ToArray()));
+        Debug.LogFormat("[Number Pad #{0}] Button colors are (0–9): {1}", _moduleId, Enumerable.Range(0, 10).Select(i => ColorNames[ButtonColors[i]]).Join(", "));
+        Module.OnActivate += ActivateModule;
+        _colorblind = ColorblindMode.ColorblindModeActive;
     }
 
-    int[] GetButtonIndices(int Number)
+    private void SetColorblind(bool on)
     {
-        if (Number == 0)
-            return new int[] { 3, 0 };
-        int y = 2 - Mathf.FloorToInt((float) (Number - 1) / 3);
-        int x = (Number - 1) % 3;
-        return new int[] { x, y };
-    }
-    int GetButtonColor(int Number)
-    {
-        int[] i = GetButtonIndices(Number);
-        return ButtonColors[i[0], i[1]];
-    }
-
-    int GetColorCount(int Color)
-    {
-        int count = 0;
-        for (int i = 0; i < 10; i++)
-        {
-            if (GetButtonColor(i) == Color)
-                count++;
-        }
-        return count;
+        for (var i = 0; i < 10; i++)
+            ButtonLabels[i].text = _colorblind && on ? ColorNames[ButtonColors[i]].Substring(0, 1).ToUpperInvariant() : i.ToString();
     }
 
     int GetPathForLevel(int level)
     {
-        //print ("getting path for level " + level);
+        var colorCounts = Enumerable.Range(0, 5).Select(color => ButtonColors.Count(c => c == color)).ToArray();
         switch (level)
         {
             case 0:
-                if (GetColorCount(COLOR_YELLOW) >= 3)
+                if (colorCounts[COLOR_YELLOW] >= 3)
                     return 0;
                 else if (
-                    ArrayContains<int>(new int[] { COLOR_WHITE, COLOR_BLUE, COLOR_RED }, GetButtonColor(4)) &&
-                    ArrayContains<int>(new int[] { COLOR_WHITE, COLOR_BLUE, COLOR_RED }, GetButtonColor(5)) &&
-                    ArrayContains<int>(new int[] { COLOR_WHITE, COLOR_BLUE, COLOR_RED }, GetButtonColor(6)))
+                    ArrayContains<int>(new int[] { COLOR_WHITE, COLOR_BLUE, COLOR_RED }, ButtonColors[4]) &&
+                    ArrayContains<int>(new int[] { COLOR_WHITE, COLOR_BLUE, COLOR_RED }, ButtonColors[5]) &&
+                    ArrayContains<int>(new int[] { COLOR_WHITE, COLOR_BLUE, COLOR_RED }, ButtonColors[6]))
                     return 1;
                 else if (ContainsVowel())
                     return 2;
                 else
                     return 3;
             case 1:
-                if (GetColorCount(COLOR_BLUE) >= 2 && GetColorCount(COLOR_GREEN) >= 3)
+                if (colorCounts[COLOR_BLUE] >= 2 && colorCounts[COLOR_GREEN] >= 3)
                     return 0;
-                else if (GetButtonColor(5) != COLOR_BLUE && GetButtonColor(5) != COLOR_WHITE)
+                else if (ButtonColors[5] != COLOR_BLUE && ButtonColors[5] != COLOR_WHITE)
                     return 1;
                 else if (PortCount() < 2)
                     return 2;
                 else
                 {
-                    if (GetButtonColor(7) == COLOR_GREEN || GetButtonColor(8) == COLOR_GREEN || GetButtonColor(9) == COLOR_GREEN)
+                    if (ButtonColors[7] == COLOR_GREEN || ButtonColors[8] == COLOR_GREEN || ButtonColors[9] == COLOR_GREEN)
                         SubtractDigit(0);
                     return 3;
                 }
 
             case 2:
-
-                if (GetColorCount(COLOR_WHITE) > 2 && GetColorCount(COLOR_YELLOW) > 2)
+                if (colorCounts[COLOR_WHITE] > 2 && colorCounts[COLOR_YELLOW] > 2)
                     return 0;
                 else
-                {
                     return 1; // remember to reverse the code thus far
-                }
 
             case 3:
-
-                if (GetColorCount(COLOR_YELLOW) <= 2)
-                {
+                if (colorCounts[COLOR_YELLOW] <= 2)
                     return 0; // remember to add 1 to each digit
-                }
                 else
                     return 1;
         }
@@ -182,16 +158,17 @@ public class NumberPadModule : MonoBehaviour
 
     void Submit()
     {
+        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
         Debug.LogFormat("[Number Pad #{0}] You submitted: {1}, which is {2}", _moduleId, Display.text, _solution == Display.text ? "correct — module solved." : "wrong — strike!");
 
         if (_solution == Display.text)
         {
-            GetComponent<KMBombModule>().HandlePass();
+            Module.HandlePass();
             _isActivated = false;
         }
         else
         {
-            GetComponent<KMBombModule>().HandleStrike();
+            Module.HandleStrike();
             _lastStrike = Time.time;
         }
     }
@@ -207,7 +184,7 @@ public class NumberPadModule : MonoBehaviour
 
     void OnPress(int btnIx)
     {
-        GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 
         if (_isActivated && Display.text.Length < 4)
             Display.text += btnIx;
@@ -388,10 +365,6 @@ public class NumberPadModule : MonoBehaviour
     {
         _solution = _solution.ReplaceAt(digit, (char) ('0' + ((_solution[digit] - '0' + 1) % 10)));
     }
-    int SolvedModuleCount()
-    {
-        return Info.GetSolvedModuleNames().Count;
-    }
     string[] PickFrom(string input, int choice, int choices)
     {
         string[] ret = new string[2];
@@ -410,29 +383,31 @@ public class NumberPadModule : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = @"Submit your four-digit answer with “!{0} submit 4236”.";
+    private string TwitchHelpMessage = @"!{0} submit 4236 [submit a four-digit answer] | !{0} colorblind";
 #pragma warning restore 414
 
-    private IEnumerator ProcessTwitchCommand(string inputCommand)
+    private IEnumerator ProcessTwitchCommand(string command)
     {
-        var commands = inputCommand.ToLowerInvariant().Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
-
-        if (commands.Length != 2 || (commands[0] != "submit" && commands[0] != "press"))
+        if (Regex.IsMatch(command, @"^\s*(cb|colou?rblind)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            _colorblind = true;
+            yield return ClearButton;
+            yield return new WaitForSeconds(2f);
+            yield return ClearButton;
             yield break;
+        }
 
-        var buttonList = commands[1].Where(c => !char.IsWhiteSpace(c)).Select(c => DigitButtons[c - '0']).ToList();
-        if (buttonList.Count() != 4 || buttonList.Any(num => num == null))
+        var m = Regex.Match(command, @"^\s*(?:submit|press)\s+([0-9]{4})\s*$", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!m.Success)
             yield break;
-
-        buttonList.Insert(0, ClearButton);
-        buttonList.Add(SubmitButton);
 
         yield return null;
-        foreach (var button in buttonList)
-        {
-            button.OnInteract();
-            yield return new WaitForSeconds(.1f);
-        }
+        var buttonList = new List<KMSelectable>();
+        buttonList.Add(ClearButton);
+        buttonList.AddRange(m.Groups[1].Value.Select(c => DigitButtons[c - '0']));
+        buttonList.Add(SubmitButton);
+        yield return buttonList;
     }
 
     IEnumerator TwitchHandleForcedSolve()

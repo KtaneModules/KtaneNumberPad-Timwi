@@ -592,6 +592,7 @@ GameObject:
   - component: {fileID: 11490884}
   - component: {fileID: 11456166}
   - component: {fileID: 11480210}
+  - component: {fileID: 114083089504030126}
   m_Layer: 0
   m_Name: NumberPadModule
   m_TagString: Untagged
@@ -3674,6 +3675,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58d7038640115e24089841286ba3565a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Module: {fileID: 11457940}
+  Audio: {fileID: 11490884}
+  ColorblindMode: {fileID: 114083089504030126}
   DigitButtons:
   - {fileID: 11466494}
   - {fileID: 11447850}
@@ -3691,6 +3695,28 @@ MonoBehaviour:
   Texture: {fileID: 2800000, guid: 49652d1c45b3e3b4cb1c8628985e44fa, type: 3}
   Shader: {fileID: 4800000, guid: 3f0d4a2e325f9c24f8251b7b8534a096, type: 3}
   Info: {fileID: 11480210}
+  ButtonLabels:
+  - {fileID: 10292590}
+  - {fileID: 10229678}
+  - {fileID: 10297292}
+  - {fileID: 10235988}
+  - {fileID: 10200568}
+  - {fileID: 10217470}
+  - {fileID: 10221822}
+  - {fileID: 10264262}
+  - {fileID: 10276140}
+  - {fileID: 10298058}
+  Buttons:
+  - {fileID: 2390826}
+  - {fileID: 2390744}
+  - {fileID: 2376446}
+  - {fileID: 2360962}
+  - {fileID: 2310386}
+  - {fileID: 2367544}
+  - {fileID: 2360792}
+  - {fileID: 2389670}
+  - {fileID: 2384552}
+  - {fileID: 2321952}
 --- !u!114 &11456250
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -4035,6 +4061,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShaderNames:
   - GUI/KT 3D Text
+--- !u!114 &114083089504030126
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 160040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1cfb889a07d5fd4e9baed7960bb397f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _colorblindMode: 0
 --- !u!114 &114166383822558338
 MonoBehaviour:
   m_ObjectHideFlags: 1
